@@ -31,9 +31,13 @@ ADVICE = {
 
 def init_db():
     with sqlite3.connect(DB_PATH) as db:
-        db.execute("""CREATE TABLE IF NOT EXISTS records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, created TEXT, patient_id TEXT,
-            hemoglobin REAL, rbc REAL, hematocrit REAL, probability REAL, risk TEXT)""")
+        db.execute("""CREATE TABLE IF NOT EXISTS patients (
+            patient_id TEXT PRIMARY KEY, sex TEXT, age INTEGER, created TEXT)""")
+        db.execute("""CREATE TABLE IF NOT EXISTS assessments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id TEXT NOT NULL REFERENCES patients(patient_id),
+            created TEXT, hemoglobin REAL, rbc REAL, hematocrit REAL,
+            probability REAL, risk TEXT)""")
 
 
 def parse(data):
@@ -65,18 +69,22 @@ def assess(v):
 def save_record(v, r):
     if not v["patient_id"]:
         return
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
     with sqlite3.connect(DB_PATH) as db:
-        db.execute("INSERT INTO records (created, patient_id, hemoglobin, rbc, hematocrit, probability, risk)"
-                   " VALUES (?,?,?,?,?,?,?)",
-                   (datetime.now().strftime("%Y-%m-%d %H:%M"), v["patient_id"], v["hemoglobin"],
-                    v["rbc"], v["hematocrit"], r["probability"], r["risk"]))
+        db.execute("INSERT INTO patients (patient_id, sex, age, created) VALUES (?,?,?,?)"
+                   " ON CONFLICT(patient_id) DO UPDATE SET sex=excluded.sex, age=excluded.age",
+                   (v["patient_id"], v["sex"], int(v["age"]), now))
+        db.execute("INSERT INTO assessments (patient_id, created, hemoglobin, rbc, hematocrit,"
+                   " probability, risk) VALUES (?,?,?,?,?,?,?)",
+                   (v["patient_id"], now, v["hemoglobin"], v["rbc"], v["hematocrit"],
+                    r["probability"], r["risk"]))
 
 
 def history(patient_id):
     if not patient_id:
         return []
     with sqlite3.connect(DB_PATH) as db:
-        return db.execute("SELECT created, hemoglobin, hematocrit, probability, risk FROM records"
+        return db.execute("SELECT created, hemoglobin, hematocrit, probability, risk FROM assessments"
                           " WHERE patient_id=? ORDER BY id DESC LIMIT 10", (patient_id,)).fetchall()
 
 
