@@ -3,7 +3,7 @@
 Flask + scikit-learn web app that screens for anemia from blood test values, gives a
 Low/Moderate/High risk level with guidance, and tracks a patient's follow-up results.
 
-**Demo:** <add your deployed link here>
+**Demo:** https://anemiasense-xw9q.onrender.com
 **Note:** trained on synthetic data; a screening aid, not a diagnosis.
 
 ## Run locally
