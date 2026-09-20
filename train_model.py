@@ -4,7 +4,9 @@ Uses SYNTHETIC data so the project runs anywhere. To use a real dataset,
 replace make_data() with a function that returns the same columns plus
 `anemic` (0/1). Sex: 0 = male, 1 = female.
 """
+import json
 import pickle
+from datetime import date
 from pathlib import Path
 
 import matplotlib
@@ -14,7 +16,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix,
+                             f1_score, precision_score, recall_score)
 from sklearn.model_selection import train_test_split
 
 from features import FEATURES, add_indices
@@ -56,7 +59,16 @@ def main():
     fig.tight_layout()
     fig.savefig(BASE / "static" / "model_report.png", dpi=120)
 
+    metrics = {
+        "model_name": f"RandomForest-{date.today().isoformat()}", "algorithm_type": "RandomForestClassifier",
+        "accuracy": accuracy_score(y_te, pred), "precision": precision_score(y_te, pred),
+        "recall": recall_score(y_te, pred), "f1": f1_score(y_te, pred),
+        "classification_report": classification_report(y_te, pred, target_names=["Not anemic", "Anemic"]),
+        "confusion_matrix": confusion_matrix(y_te, pred).tolist(),
+        "training_date": date.today().isoformat(),
+    }
     (BASE / "models").mkdir(exist_ok=True)
+    (BASE / "models" / "metrics.json").write_text(json.dumps(metrics, indent=2))
     with open(BASE / "models" / "model.pkl", "wb") as f:
         pickle.dump(model, f)
     print("Saved models/model.pkl and static/model_report.png")
